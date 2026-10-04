@@ -1,0 +1,44 @@
+name: Build Speaker Core Purger
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Unpack project zip
+        run: |
+          ZIP="$(ls ./*.zip | head -n 1)"
+          echo "Unpacking $ZIP"
+          unzip -q "$ZIP"
+          ls SpeakerCorePurger
+
+      - name: Build debug and release APKs
+        working-directory: SpeakerCorePurger
+        env:
+          ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
+          ADMOB_BANNER_ID: ${{ secrets.ADMOB_BANNER_ID }}
+          ADMOB_INTERSTITIAL_ID: ${{ secrets.ADMOB_INTERSTITIAL_ID }}
+          ADMOB_REWARDED_ID: ${{ secrets.ADMOB_REWARDED_ID }}
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug :app:assembleRelease --stacktrace
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SpeakerCorePurger-apks
+          path: SpeakerCorePurger/app/build/outputs/apk/*/*.apk
+          if-no-files-found: error
