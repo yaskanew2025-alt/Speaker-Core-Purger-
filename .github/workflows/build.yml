@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -34,6 +37,19 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew :app:assembleDebug :app:assembleRelease --stacktrace
+
+      - name: Publish APKs on the Releases page
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp SpeakerCorePurger/app/build/outputs/apk/debug/app-debug.apk SpeakerCorePurger-debug.apk
+          cp SpeakerCorePurger/app/build/outputs/apk/release/app-release.apk SpeakerCorePurger-release.apk
+          gh release create "build-${{ github.run_number }}" \
+            SpeakerCorePurger-debug.apk SpeakerCorePurger-release.apk \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "${{ github.sha }}" \
+            --title "Speaker Core Purger build ${{ github.run_number }}" \
+            --notes "Tap SpeakerCorePurger-debug.apk to download it, then install it."
 
       - uses: actions/upload-artifact@v4
         with:
